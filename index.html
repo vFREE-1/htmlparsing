@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>结果解析</title>
+    <style>
+        .preview {
+            width: 100%;
+            min-height: 500px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h3>HTML 解析结果（URL参数自动加载）</h3>
+    <div class="preview" id="preview"></div>
+
+    <script>
+        // 获取URL参数中的html代码
+        function getUrlParam(name) {
+            const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`);
+            const r = window.location.search.substr(1).match(reg);
+            return r ? decodeURIComponent(r[2]) : '';
+        }
+
+        // 解析并展示HTML
+        const htmlCode = getUrlParam('html');
+        document.getElementById('preview').innerHTML = htmlCode || '请在URL后拼接 ?html=URL编码后的HTML代码';
+    </script>
+</body>
+</html>
