@@ -3,23 +3,427 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>结果解析</title>
-    
+    <title>Markdown解析器</title>
+    <!-- 引入marked.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入highlight.js代码高亮 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <!-- 引入marked扩展 -->
+    <script>
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            }
+        });
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 24px 30px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .control-panel {
+            padding: 20px 30px;
+            background-color: #f9fafc;
+            border-bottom: 1px solid #eaeaea;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .btn {
+            background-color: #4a6ee0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background-color: #3a5ed0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(58, 94, 208, 0.2);
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .url-info {
+            flex-grow: 1;
+            padding: 10px 15px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #555;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .editor-container {
+            display: flex;
+            min-height: 600px;
+            flex-wrap: wrap;
+        }
+        
+        .editor-section, .preview-section {
+            flex: 1;
+            min-width: 300px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .section-title {
+            padding: 15px 20px;
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .editor {
+            flex-grow: 1;
+            padding: 20px;
+            border: none;
+            resize: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 15px;
+            line-height: 1.5;
+            color: #333;
+            background-color: white;
+        }
+        
+        .editor:focus {
+            outline: none;
+        }
+        
+        .preview {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: white;
+            border-left: 1px solid #e2e8f0;
+        }
+        
+        .preview h1, .preview h2, .preview h3 {
+            margin-top: 1.2em;
+            margin-bottom: 0.6em;
+            color: #2d3748;
+        }
+        
+        .preview h1 {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.3em;
+        }
+        
+        .preview h2 {
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.3em;
+        }
+        
+        .preview p {
+            margin-bottom: 1em;
+        }
+        
+        .preview code {
+            background-color: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            color: #dd4a68;
+        }
+        
+        .preview pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.2em;
+            border: 1px solid #e9ecef;
+        }
+        
+        .preview blockquote {
+            border-left: 4px solid #4a6ee0;
+            padding-left: 20px;
+            margin-left: 0;
+            color: #4a5568;
+            font-style: italic;
+            background-color: #f7fafc;
+            padding: 10px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 1.2em;
+        }
+        
+        .preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1.2em;
+        }
+        
+        .preview table th, .preview table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px 15px;
+            text-align: left;
+        }
+        
+        .preview table th {
+            background-color: #f7fafc;
+            font-weight: 600;
+        }
+        
+        .preview ul, .preview ol {
+            margin-bottom: 1.2em;
+            padding-left: 2em;
+        }
+        
+        .preview li {
+            margin-bottom: 0.4em;
+        }
+        
+        .preview a {
+            color: #4a6ee0;
+            text-decoration: none;
+        }
+        
+        .preview a:hover {
+            text-decoration: underline;
+        }
+        
+        .preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 1em 0;
+        }
+        
+        .preview hr {
+            border: none;
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 2em 0;
+        }
+        
+        footer {
+            padding: 20px 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            border-top: 1px solid #eaeaea;
+            background-color: #f9fafc;
+        }
+        
+        footer a {
+            color: #4a6ee0;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .instructions {
+            padding: 25px 30px;
+            background-color: #f0f9ff;
+            border-top: 1px solid #e0f2fe;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 15px;
+            color: #0369a1;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .editor-container {
+                flex-direction: column;
+            }
+            
+            .preview {
+                border-left: none;
+                border-top: 1px solid #e2e8f0;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn {
+                justify-content: center;
+            }
+        }
+        
+        .icon {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .empty-state {
+            color: #94a3b8;
+            text-align: center;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85rem;
+            font-weight: normal;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 0.95;
+        }
+    </style>
 </head>
 <body>
-    <div class="preview" id="preview"></div>
+    <div class="container">
+        <header>
+            <h1>Markdown解析器</h1>
+            <p class="subtitle">通过URL参数传递和解析Markdown内容 • 支持实时预览和分享</p>
+        </header>
+        
+        <div class="control-panel">
+            <button class="btn" id="parseBtn">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
+                </svg>
+                解析Markdown
+            </button>
+            
+            <button class="btn btn-success" id="shareBtn">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                </svg>
+                生成分享链接
+            </button>
+            
+            <button class="btn btn-secondary" id="clearBtn">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+                清空内容
+            </button>
+            
+            <div class="url-info">
+                <strong>当前URL参数:</strong> <span id="urlParamDisplay">无</span>
+            </div>
+        </div>
+        
+        <div class="editor-container">
+            <div class="editor-section">
+                <div class="section-title">
+                    <span>Markdown 编辑器</span>
+                    <span style="float:right; font-size:0.85rem; font-weight:normal;">
+                        字符数: <span id="charCount">0</span>
+                    </span>
+                </div>
+                <textarea id="markdownInput" class="editor" placeholder="在此输入Markdown文本..."># Markdown 示例
 
-    <script>
-        // 获取URL参数中的html代码
-        function getUrlParam(name) {
-            const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`);
-            const r = window.location.search.substr(1).match(reg);
-            return r ? decodeURIComponent(r[2]) : '';
-        }
+这是一个通过URL参数传递的Markdown解析器示例。
 
-        // 解析并展示HTML
-        const htmlCode = getUrlParam('html');
-        document.getElementById('preview').innerHTML = htmlCode || '请在URL后拼接 ?html=URL编码后的HTML代码';
-    </script>
-</body>
-</html>
+## 功能特性
+- 支持实时预览
+- 代码语法高亮
+- 通过URL分享内容
+- 响应式设计
+
+## 代码示例
+```javascript
+function helloWorld() {
+    console.log("Hello, Markdown Parser!");
+    return "This is a code block with syntax highlighting";
+}
