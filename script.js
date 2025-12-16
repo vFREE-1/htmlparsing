@@ -28,6 +28,23 @@ function parseMarkdown(text) {
     return marked.parse(text);
 }
 
+// 在长URL中插入零宽空格，以强制浏览器在需要时换行
+function insertZeroWidthSpaces(text) {
+    if (typeof text !== 'string') return text;
+    
+    // 匹配URL模式
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
+    
+    return text.replace(urlPattern, (url) => {
+        // 如果URL过长（超过50个字符），在适当位置插入零宽空格
+        if (url.length > 50) {
+            // 每25个字符插入一个零宽空格
+            return url.replace(/(.{25})/g, '$1\u200B');
+        }
+        return url;
+    });
+}
+
 // 将JSON数据转换为Markdown格式
 function jsonToMarkdown(jsonData) {
     let markdown = '';
@@ -39,7 +56,9 @@ function jsonToMarkdown(jsonData) {
         for (const [key, value] of Object.entries(article)) {
             // 清理值中的可能存在的反引号
             const cleanedValue = String(value).replace(/`/g, '');
-            markdown += `- ${key}：${cleanedValue}\n`;
+            // 在长URL中插入零宽空格
+            const processedValue = insertZeroWidthSpaces(cleanedValue);
+            markdown += `- ${key}：${processedValue}\n`;
         }
         markdown += '------\n\n';
     });
@@ -53,16 +72,57 @@ function displayResult(text) {
     outputDiv.innerHTML = parseMarkdown(text);
 }
 
+// 检查并处理POST请求
+function checkPostRequest() {
+    // 检查是否有表单数据
+    const postJsonInput = document.getElementById('postJsonInput');
+    if (postJsonInput && postJsonInput.value) {
+        return postJsonInput.value;
+    }
+    return null;
+}
+
+// 检查并处理localStorage数据
+function checkLocalStorage() {
+    if (localStorage.getItem('jsonData')) {
+        const jsonData = localStorage.getItem('jsonData');
+        // 清除localStorage中的数据，避免下次自动加载
+        localStorage.removeItem('jsonData');
+        return jsonData;
+    }
+    return null;
+}
+
 // 初始化页面
 function init() {
-    // 获取URL参数
+    let jsonDataStr = null;
+    let textData = null;
+    
+    // 1. 首先检查URL参数（GET请求）
     const params = getURLParams();
     
-    // 如果有json参数，使用它并解析
+    // 2. 检查POST请求数据
+    const postJson = checkPostRequest();
+    
+    // 3. 检查localStorage数据
+    const localStorageJson = checkLocalStorage();
+    
+    // 确定使用哪个数据源
     if (params.json) {
+        jsonDataStr = params.json;
+    } else if (postJson) {
+        jsonDataStr = postJson;
+    } else if (localStorageJson) {
+        jsonDataStr = localStorageJson;
+    } else if (params.text) {
+        textData = params.text;
+    }
+    
+    // 如果有json数据，使用它并解析
+    if (jsonDataStr) {
         try {
             // 解析JSON数据
-            const jsonData = JSON.parse(params.json);
+            const jsonData = JSON.parse(jsonDataStr);
             // 转换为Markdown格式
             const markdownText = jsonToMarkdown(jsonData);
             // 显示结果
@@ -72,9 +132,29 @@ function init() {
         }
     }
     // 如果有text参数，使用它并解析
-    else if (params.text) {
-        displayResult(params.text);
+    else if (textData) {
+        displayResult(textData);
     }
+}
+
+// 提供外部调用接口，用于传递JSON数据
+function handleJsonData(jsonData) {
+    try {
+        // 如果是字符串，先解析
+        const parsedData = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+        // 转换为Markdown格式
+        const markdownText = jsonToMarkdown(parsedData);
+        // 显示结果
+        displayResult(markdownText);
+    } catch (error) {
+        displayResult(`解析JSON数据时发生错误：${error.message}`);
+    }
+}
+
+// 保存JSON数据到localStorage并跳转到当前页面
+function saveJsonToLocalStorageAndRedirect(jsonData) {
+    localStorage.setItem('jsonData', typeof jsonData === 'string' ? jsonData : JSON.stringify(jsonData));
+    window.location.href = window.location.pathname;
 }
 
 // 页面加载完成后初始化
