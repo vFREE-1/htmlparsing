@@ -3,8 +3,13 @@ function getURLParams() {
     const params = {};
     const urlParams = new URLSearchParams(window.location.search);
     for (const [key, value] of urlParams) {
-        // URLSearchParams已经自动解码了，不需要再调用decodeURIComponent
-        params[key] = value;
+        // 为了确保正确处理各种编码情况，我们再次进行解码
+        try {
+            params[key] = decodeURIComponent(value);
+        } catch (e) {
+            // 如果解码失败，使用原始值
+            params[key] = value;
+        }
     }
     return params;
 }
@@ -23,6 +28,25 @@ function parseMarkdown(text) {
     return marked.parse(text);
 }
 
+// 将JSON数据转换为Markdown格式
+function jsonToMarkdown(jsonData) {
+    let markdown = '';
+    
+    // 遍历JSON数组中的每个文章对象
+    jsonData.forEach(article => {
+        markdown += '------\n';
+        // 遍历文章对象的每个属性
+        for (const [key, value] of Object.entries(article)) {
+            // 清理值中的可能存在的反引号
+            const cleanedValue = String(value).replace(/`/g, '');
+            markdown += `- ${key}：${cleanedValue}\n`;
+        }
+        markdown += '------\n\n';
+    });
+    
+    return markdown;
+}
+
 // 显示解析结果
 function displayResult(text) {
     const outputDiv = document.getElementById('markdownOutput');
@@ -34,8 +58,21 @@ function init() {
     // 获取URL参数
     const params = getURLParams();
     
+    // 如果有json参数，使用它并解析
+    if (params.json) {
+        try {
+            // 解析JSON数据
+            const jsonData = JSON.parse(params.json);
+            // 转换为Markdown格式
+            const markdownText = jsonToMarkdown(jsonData);
+            // 显示结果
+            displayResult(markdownText);
+        } catch (error) {
+            displayResult(`解析JSON数据时发生错误：${error.message}`);
+        }
+    }
     // 如果有text参数，使用它并解析
-    if (params.text) {
+    else if (params.text) {
         displayResult(params.text);
     }
 }
